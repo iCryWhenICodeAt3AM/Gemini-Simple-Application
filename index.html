@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Pro Testing</title>
+</head>
+
+<body>
+  <hr>
+  <label for="prompt">Prompt goes here:</label>
+  <input type="text" name="prompt" id="prompt">
+  <input type="button" value="Generate Text Only" id="textButton">
+  <hr>
+  <label for="imageInput">Upload Image:</label>
+  <input type="file" name="imageInput" id="imageInput" accept="image/*">
+  <input type="button" value="Generate With Vision" id="visionButton">
+  <hr>
+  <label for="output">Output:</label> <br>
+  <textarea name="output" id="output" cols="30" rows="10" disabled></textarea>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@google/generative-ai": "https://esm.run/@google/generative-ai"
+      }
+    }
+  </script>
+  <script type="module">
+    import {
+      GoogleGenerativeAI
+    } from "@google/generative-ai";
+
+    // Fetch your API_KEY
+    const API_KEY = "AIzaSyB_DqoktUPNvFgQIf2vTW3R_e2yk4Tj0rM";
+
+    // Access your API key (see "Set up your API key" above)
+    const genAI = new GoogleGenerativeAI(API_KEY);
+
+    document.getElementById("textButton").addEventListener("click", function () {
+      const userPrompt = document.getElementById("prompt").value;
+      runText(userPrompt);
+    });
+
+    document.getElementById("visionButton").addEventListener("click", function () {
+      const userPrompt = document.getElementById("prompt").value;
+      runVision(userPrompt);
+    });
+
+    async function runText(userPrompt) {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const prompt = userPrompt;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      console.log(text);
+      document.getElementById("output").value = text;
+    }
+
+    async function runVision(userPrompt) {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+      const prompt = userPrompt;
+
+      const fileInputEl = document.querySelector("input[type=file]");
+      const imageParts = await fileToGenerativeParts([...fileInputEl.files]);
+
+      const result = await model.generateContent([prompt, ...imageParts]);
+      const response = await result.response;
+      const text = response.text();
+      console.log(text);
+      document.getElementById("output").value = text;
+    }
+
+    async function fileToGenerativeParts(files) {
+      const promises = [];
+      for (const file of files) {
+        promises.push(fileToGenerativePart(file));
+      }
+      return Promise.all(promises);
+    }
+
+    async function fileToGenerativePart(file) {
+      const base64EncodedDataPromise = new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(file);
+      });
+      return {
+        inlineData: {
+          data: await base64EncodedDataPromise,
+          mimeType: file.type,
+        },
+      };
+    }
+  </script>
+</body>
+
+</html>
