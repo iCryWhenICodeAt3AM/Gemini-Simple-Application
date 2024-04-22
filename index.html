@@ -57,7 +57,7 @@
   <div id="conversationContainer"></div>
   <hr>
   <label for="response">Gemini Pro:</label> <br>
-  <textarea name="response" id="response" cols="30" rows="10" disabled></textarea>
+  <textarea name="response" id="response" oninput="autoAdjust(this)" disabled></textarea>
   
   <script>
   // Function to auto-adjust textarea height
