@@ -13,7 +13,13 @@
       border: 1px solid #ccc;
       padding: 10px;
     }
-
+    textarea {
+    resize: none;
+    overflow: hidden;
+    min-height: 50px; /* minimum height */
+    max-height: 300px; /* maximum height */
+    width: 100%;
+    }
     /* Style individual messages */
     .message {
       margin-bottom: 10px;
@@ -44,7 +50,7 @@
 <body>
   <hr>
   <label for="prompt">User:</label>
-  <input type="text" name="prompt" id="prompt">
+  <textarea name="prompt" id="prompt" oninput="autoAdjust(this)"></textarea>
   <input type="file" name="imageInput" id="imageInput" accept="image/*">
   <input type="button" value="Send Message" id="sendMessageButton">
   <hr>
@@ -52,7 +58,18 @@
   <hr>
   <label for="response">Gemini Pro:</label> <br>
   <textarea name="response" id="response" cols="30" rows="10" disabled></textarea>
-
+  
+  <script>
+  // Function to auto-adjust textarea height
+  function autoAdjust(textarea) {
+    textarea.style.height = 'auto'; // Reset height to auto
+    textarea.style.height = (textarea.scrollHeight + 2) + 'px'; // Set new height
+  }
+  // Auto-adjust on page load
+  window.onload = function() {
+    autoAdjust(document.getElementById('prompt'));
+  };
+</script>
   <script type="importmap">
     {
       "imports": {
