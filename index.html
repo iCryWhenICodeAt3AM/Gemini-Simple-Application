@@ -86,121 +86,129 @@
     const API_KEY ="AIzaSyB_DqoktUPNvFgQIf2vTW3R_e2yk4Tj0rM";
 
     // Access your API key (see "Set up your API key" above)
-    const genAI = new GoogleGenerativeAI(API_KEY);
+const API_KEY = "your_api_key_here"; // Replace with your actual API key
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-    // Conversation array to store user prompts and responses
-    const conversation = [];
+// Conversation array to store user prompts and responses
+const conversation = [];
 
-    document.getElementById("sendMessageButton").addEventListener("click", function () {
-      const userPrompt = document.getElementById("prompt").value;
-      const fileInputEl = document.getElementById("imageInput");
-      const hasImage = fileInputEl.files.length > 0;
+document.getElementById("sendMessageButton").addEventListener("click", function () {
+  const userPrompt = document.getElementById("prompt").value;
+  const fileInputEl = document.getElementById("imageInput");
+  const hasImage = fileInputEl.files.length > 0;
 
-      if (hasImage) {
-        const image = fileInputEl.files[0];
-        sendMessageWithImage(userPrompt, image);
-      } else {
-        sendMessage(userPrompt);
-      }
-    });
+  if (hasImage) {
+    const image = fileInputEl.files[0];
+    sendMessageWithImage(userPrompt, image);
+  } else {
+    sendMessage(userPrompt);
+  }
+});
 
-    async function sendMessage(userPrompt) {
-      // Store user message in the conversation
-      conversation.push({ role: 'user', text: userPrompt });
-      // Display the conversation
-      displayConversation();
+async function sendMessage(userPrompt) {
+  // Store user message in the conversation
+  conversation.push({ role: 'user', text: userPrompt });
+  // Display the conversation
+  displayConversation();
 
-      const model = genAI.getGenerativeModel({ model: "gemini-pro"});
-      const result = await model.generateContent(conversation.map(entry => entry.text));
-      const response = await result.response;
-      const text = response.text();
-      console.log(text);
-      // Store Gemini Pro's response in the conversation
-      conversation.push({ role: 'gemini', text: text });
-      // Display the conversation
-      displayConversation();
-      // Display the current response
-      document.getElementById("response").value = text;
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const result = await model.generateContent(conversation.map(entry => entry.text));
+    const response = await result.text();
+    console.log(response);
+    
+    // Store Gemini's response in the conversation
+    conversation.push({ role: 'gemini', text: response });
+    // Display the conversation
+    displayConversation();
+    // Display the current response
+    document.getElementById("response").value = response;
+  } catch (error) {
+    console.error("Error generating content:", error);
+  }
+}
+
+async function sendMessageWithImage(userPrompt, image) {
+  // Store user message in the conversation
+  conversation.push({ role: 'user', text: userPrompt, image: URL.createObjectURL(image) });
+  // Display the conversation
+  displayConversation();
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+    // Convert the image to a Base64 string
+    const imgDataInBase64 = await convertToBase64(image);
+
+    const result = await model.generateContent([
+      userPrompt,
+      { inlineData: { data: imgDataInBase64, mimeType: image.type } }
+    ]);
+    const response = await result.text();
+    console.log(response);
+
+    // Store Gemini's response in the conversation
+    conversation.push({ role: 'gemini', text: response, image: URL.createObjectURL(image) });
+    // Display the conversation
+    displayConversation();
+    // Display the current response
+    document.getElementById("response").value = response;
+
+    // Clear uploaded image
+    document.getElementById("imageInput").value = "";
+  } catch (error) {
+    console.error("Error generating content with image:", error);
+  }
+}
+
+function displayConversation() {
+  const conversationContainer = document.getElementById("conversationContainer");
+
+  // Clear existing messages
+  conversationContainer.innerHTML = '';
+
+  // Display the conversation in the container
+  conversation.forEach(entry => {
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `message ${entry.role}-message`;
+
+    // Interpret and apply formatting rules
+    const formattedText = interpretFormatting(entry.text);
+    messageDiv.innerHTML = `${entry.role}: <div class="formatted-text">${formattedText}</div>`;
+
+    if (entry.image) {
+      const img = document.createElement("img");
+      img.src = entry.image;
+      img.style.maxWidth = "200px";
+      conversationContainer.appendChild(img);
     }
 
-    async function sendMessageWithImage(userPrompt, image) {
-      // Store user message in the conversation
-      conversation.push({ role: 'user', text: userPrompt, image: image });
-      // Display the conversation
-      displayConversation();
+    conversationContainer.appendChild(messageDiv);
+  });
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest"});
+  // Scroll to the bottom to show the latest message
+  conversationContainer.scrollTop = conversationContainer.scrollHeight;
+}
 
-      const imageUrl = URL.createObjectURL(image);
+// Function to interpret and apply formatting rules
+function interpretFormatting(text) {
+  // Replace '**' with <b> for bold
+  text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
-      const imageParts = await fileToGenerativePart(imageUrl, image.type);
+  // Replace '*' with <li> for bullet points
+  text = text.replace(/\*(.*?)\*/g, '<li>$1</li>');
 
-      const result = await model.generateContent([userPrompt, imageParts]);
-      const response = await result.response;
-      const text = response.text();
-      console.log(text);
-      // Store Gemini Pro's response in the conversation
-      conversation.push({ role: 'gemini', text: text, image: imageUrl });
-      // Display the conversation
-      displayConversation();
-      // Display the current response
-      document.getElementById("response").value = text;
+  return text;
+}
 
-      // Clear uploaded image
-      document.getElementById("imageInput").value = "";
-    }
-
-    function displayConversation() {
-      const conversationContainer = document.getElementById("conversationContainer");
-
-      // Clear existing messages
-      conversationContainer.innerHTML = '';
-
-      // Display the conversation in the container
-      conversation.forEach(entry => {
-        const messageDiv = document.createElement("div");
-        messageDiv.className = `message ${entry.role}-message`;
-
-        // Interpret and apply formatting rules
-        const formattedText = interpretFormatting(entry.text);
-        messageDiv.innerHTML = `${entry.role}: <div class="formatted-text">${formattedText}</div>`;
-        
-        conversationContainer.appendChild(messageDiv);
-      });
-
-      // Scroll to the bottom to show the latest message
-      conversationContainer.scrollTop = conversationContainer.scrollHeight;
-    }
-
-    // Function to interpret and apply formatting rules
-    function interpretFormatting(text) {
-      // Replace '*' with <b> for bold
-      text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-      
-      // Replace '*' with <li> for bullet points
-      text = text.replace(/\*(.*?)\*/g, '<li>$1</li>');
-      
-      return text;
-    }
-
-    async function fileToGenerativePart(imageUrl, mimeType) {
-      const base64EncodedDataPromise = fetch(imageUrl)
-        .then(response => response.blob())
-        .then(blob => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-          });
-        });
-
-      return {
-        inlineData: {
-          data: await base64EncodedDataPromise,
-          mimeType: mimeType,
-        },
-      };
-    }
+function convertToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = error => reject(error);
+  });
+}
   </script>
 </body>
 
