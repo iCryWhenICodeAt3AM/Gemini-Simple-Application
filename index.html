@@ -71,16 +71,14 @@
   };
 </script>
   <script type="importmap">
-    {
-      "imports": {
-        "@google/generative-ai": "https://esm.run/@google/generative-ai"
-      }
+     {
+    "imports": {
+      "@google/generative-ai": "https://esm.run/@google/generative-ai"
     }
+  }
   </script>
   <script type="module">
-    import {
-      GoogleGenerativeAI
-    } from "@google/generative-ai";
+    import { GoogleGenerativeAI } from "@google/generative-ai";
 
     // Access your API key (see "Set up your API key" above)
 const API_KEY = "AIzaSyB_DqoktUPNvFgQIf2vTW3R_e2yk4Tj0rM"; // Replace with your actual API key
@@ -109,17 +107,18 @@ async function sendMessage(userPrompt) {
   displayConversation();
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(conversation.map(entry => entry.text));
-    const response = await result.text();
-    console.log(response);
+    const response = await result.response;
+    const text = response.text();
+    console.log(text);
     
     // Store Gemini's response in the conversation
-    conversation.push({ role: 'gemini', text: response });
+    conversation.push({ role: 'gemini', text: text });
     // Display the conversation
     displayConversation();
     // Display the current response
-    document.getElementById("response").value = response;
+    document.getElementById("response").value = text;
   } catch (error) {
     console.error("Error generating content:", error);
   }
@@ -132,7 +131,7 @@ async function sendMessageWithImage(userPrompt, image) {
   displayConversation();
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Convert the image to a Base64 string
     const imgDataInBase64 = await convertToBase64(image);
